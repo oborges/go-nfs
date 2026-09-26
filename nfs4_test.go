@@ -131,7 +131,7 @@ func nfs4TestCompoundClient(t *testing.T, srv *Server, handler Handler, name str
 	}
 	var res nfs4SetClientIDRes
 	nfs4ExpectOp(t, resp, nfs4OpSetClientID, nfs4OK, &res)
-	confirm := nfs4SetClientIDConfirmArgs{ClientID: res.ClientID, Confirm: res.Confirm}
+	confirm := nfs4SetClientIDConfirmArgs(res)
 	if status, _ := nfs4RunCompound(t, srv, handler, nfs4TestOp{nfs4OpSetClientIDConfirm, confirm}); status != nfs4OK {
 		t.Fatalf("SETCLIENTID_CONFIRM: status = %d", status)
 	}
