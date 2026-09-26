@@ -17,7 +17,8 @@ const (
 	nfs4ShareAccessWrite uint32 = 0x00000002
 	nfs4ShareDenyNone    uint32 = 0
 
-	nfs4ClaimNull uint32 = 0
+	nfs4ClaimNull     uint32 = 0
+	nfs4ClaimPrevious uint32 = 1
 
 	nfs4OpenDelegateNone uint32 = 0
 
@@ -87,6 +88,12 @@ func nfs4OnOpen(c *nfs4Compound, args io.Reader, res io.Writer) nfs4Status {
 		}
 	default:
 		return nfs4ErrInval
+	}
+	if req.Claim == nfs4ClaimPrevious {
+		// No grace period: this server keeps no open state across a
+		// restart to reclaim. NFS4ERR_NO_GRACE sends the client to open
+		// the file afresh; any other error loses the open.
+		return nfs4ErrNoGrace
 	}
 	if req.Claim != nfs4ClaimNull {
 		return nfs4ErrNotSupp

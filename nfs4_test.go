@@ -188,6 +188,27 @@ func TestNFSv4CompoundPutRootFHGetAttr(t *testing.T) {
 	}
 }
 
+// After a server restart a client reclaims its opens with CLAIM_PREVIOUS.
+// This server keeps no state across a restart, so it must answer
+// NFS4ERR_NO_GRACE, which sends the client to open the file afresh. Any
+// other error makes a Linux client give up on the open file, failing its
+// reads and writes with EIO.
+func TestNFSv4OpenReclaimHasNoGrace(t *testing.T) {
+	srv, handler, _ := newNFS4TestServer(t)
+	client := nfs4TestCompoundClient(t, srv, handler, "c")
+
+	reclaim := nfs4OpenFile(client, "f", "alice", nil)
+	args := reclaim.args.(nfs4OpenArgs)
+	args.Claim = nfs4ClaimPrevious
+	args.File = ""
+	reclaim.args = args
+
+	status, _ := nfs4RunCompound(t, srv, handler, nfs4TestOp{nfs4OpPutRootFH, nil}, reclaim)
+	if status != nfs4ErrNoGrace {
+		t.Fatalf("OPEN with CLAIM_PREVIOUS: status = %d, want NFS4ERR_NO_GRACE (%d)", status, nfs4ErrNoGrace)
+	}
+}
+
 func TestNFSv4OpenStateIDGenerations(t *testing.T) {
 	srv, handler, _ := newNFS4TestServer(t)
 	client := nfs4TestCompoundClient(t, srv, handler, "c")
